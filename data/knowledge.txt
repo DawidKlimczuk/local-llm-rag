@@ -1,0 +1,32 @@
+======================================================================
+INFRASTRUKTURA IT & DOKUMENTACJA OPERACYJNA: PROJEKT CLOUD-CORE v4.2
+======================================================================
+
+1. TOPOLOGIA ŚRODOWISKA PRODUKCYJNEGO
+- Środowisko aplikacyjne bazuje na klastrze Kubernetes z 6 węzłami roboczymi (worker nodes).
+- Relacyjna baza danych: Klastry PostgreSQL v16 w konfiguracji Primary-Replica z replikacją strumieniową.
+- Warstwa buforowania: Dwu-węzłowy klaster Redis Enterprise z czasem retencji kluczy TTL = 3600s.
+- Magazyn wektorowy dla modułów sztucznej inteligencji: Baza Qdrant z indeksem HNSW, dystans cosinusowy.
+
+2. HARMONOGRAM WDROŻEŃ I OKNA SERWISOWE
+- Wszystkie release'y produkcyjne (Production Deployments) mogą odbywać się wyłącznie w środy w godzinach 21:00 - 23:00 UTC.
+- Wymagane jest zatwierdzenie minimum dwóch Lead Inżynierów (Code Review & Architecture Sign-off).
+- Środowisko testowe (Staging) podlega automatycznemu wdrożeniu po każdym scaleniu gałęzi do brancha 'main'.
+
+3. TAJNE PROTOKOŁY AUTORYZACYJNE I DOSTĘPY
+- Token awaryjny typu Break-Glass do klastra bazodanowego: AUTH-PG-SEC-8821-X9.
+- Dostęp SSH do bastion hosta jest limitowany wyłącznie do adresacji IP biura z użyciem kluczy Ed25519.
+- Hasło do awaryjnego panelu diagnostycznego gatewaya: PROD-FALLBACK-GATEWAY-2026.
+
+4. PROCEDURY AWARYJNE (INCIDENT RESPONSE RUNBOOK)
+- Incydent P1 (Niedostępność bazy danych):
+  1. Dyżurny inżynier uruchamia skrypt automatycznego przełączenia węzłów: 'failover-db-primary.sh'.
+  2. Powiadomienie zespołu na kanale Slack #incident-prod w ciągu maksymalnie 5 minut od wykrycia błędu.
+  3. W przypadku braku synchronizacji danych, system wstrzymuje ruch wejściowy kodem HTTP 503 i przełącza ruch na statyczną stronę konserwacyjną.
+- Incydent P2 (Przeciążenie modeli LLM / RAG):
+  1. Przy czasie odpowiedzi modelu przekraczającym 2500ms następuje fallback do bufora pamięci podręcznej.
+  2. Wektorowy retriever zawęża parametr Top-K z wartości 5 do 2 fragmentów w celu optymalizacji zużycia VRAM.
+
+5. ZESPÓŁ ODPOWIEDZIALNY
+- Główny inżynier systemowy i architekt integracji: Dawid Klimczuk
+- Kontakt telefoniczny eskalacji krytycznej: wewn. 7001 (centrala NOC)
